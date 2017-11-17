@@ -1,0 +1,6 @@
+[
+		{ "id":"1004", "pId":"100", "name":"流程定义管理", "page":"/bos-ssm/processDefinitionContro/list"},
+		{ "id":"1005", "pId":"100", "name":"查看正在运行的流程实例", "page":"/bos-ssm/processInstanceContro/list"}
+]
+
+

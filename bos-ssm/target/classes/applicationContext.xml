@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:aop="http://www.springframework.org/schema/aop"
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xsi:schemaLocation="http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd">
+    <!-- 组件扫描 -->
+	<context:component-scan base-package="com">
+		<context:exclude-filter type="annotation"
+			expression="org.springframework.stereotype.Controller" />
+	</context:component-scan>
+ 
+	<!-- Spring的配置文件，这里主要配置和业务逻辑有关的 -->
+	<!--=================== 数据源，事务控制，xxx ================-->
+	<context:property-placeholder location="classpath:dbconfig.properties" />
+	<bean id="pooledDataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+		<property name="jdbcUrl" value="${jdbc.jdbcUrl}"></property>
+		<property name="driverClass" value="${jdbc.driverClass}"></property>
+		<property name="user" value="${jdbc.user}"></property>
+		<property name="password" value="${jdbc.password}"></property>
+	</bean>
+    <!-- 数据源 ，这个数据源提供给hibernate-->
+   <!--  <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+       <property name="jdbcUrl" value="${jdbc.jdbcUrl}"></property>
+		<property name="driverClass" value="${jdbc.driverClass}"></property>
+		<property name="user" value="${jdbc.user}"></property>
+		<property name="password" value="${jdbc.password}"></property>
+    </bean> -->
+    
+	<!--================== 配置和MyBatis的整合=============== -->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<!-- 指定mybatis全局配置文件的位置 -->
+		<property name="configLocation" value="classpath:mybatis-config.xml"></property>
+		<property name="dataSource" ref="pooledDataSource"></property>
+		<!-- 指定mybatis，mapper文件的位置 -->
+		<property name="mapperLocations" value="classpath:mapper/*.xml"></property>
+	</bean>
+
+	<!-- 配置扫描器，将mybatis接口的实现加入到ioc容器中 -->
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<!--扫描所有dao接口的实现，加入到ioc容器中 -->
+		<property name="basePackage" value="com.atguigu.bos.dao"></property>
+	</bean>
+	
+	<!-- 配置一个可以执行批量的sqlSession -->
+	<bean id="sqlSession" class="org.mybatis.spring.SqlSessionTemplate">
+		<constructor-arg name="sqlSessionFactory" ref="sqlSessionFactory"></constructor-arg>
+		<constructor-arg name="executorType" value="BATCH" ></constructor-arg>
+	</bean>
+	<!--=============================================  -->
+
+	<!-- ===============事务控制的配置 ================暂时注释掉 -->
+	<!--   <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		控制住数据源                  
+		<property name="dataSource" ref="pooledDataSource"></property>
+	</bean> -->  
+    
+    
+    <!-- spring框架用于整合Hibernate的工厂bean -->  <!-- 为增加hibernate配置而加-->
+    <bean id="sessionFactory" class="org.springframework.orm.hibernate3.LocalSessionFactoryBean">
+        <property name="dataSource" ref="pooledDataSource"/>
+        <!-- 注入Hibernate相关的属性 -->
+        <property name="hibernateProperties">
+            <props>
+                <prop key="hibernate.dialect">org.hibernate.dialect.MySQL5Dialect</prop>
+                <prop key="hibernate.show_sql">true</prop>
+                <prop key="hibernate.format_sql">true</prop>
+                <prop key="hibernate.hbm2ddl.auto">update</prop>
+            </props>
+        </property>
+        <!-- 注入Hibernate的映射文件 -->
+        <property name="mappingDirectoryLocations">
+            <list>
+                <value>classpath:com/itheima/bos/domain</value> 
+            </list>
+        </property>
+    </bean>
+    
+    <!-- 事务管理器 -->  <!-- 为增加hibernate配置而加-->
+   <bean id="transactionManager" class="org.springframework.orm.hibernate3.HibernateTransactionManager">
+        <property name="sessionFactory" ref="sessionFactory"/>
+    </bean> 
+    
+	<!--开启基于注解的事务，使用xml配置形式的事务（必要主要的都是使用配置式）  -->
+	<aop:config>
+		<!-- 切入点表达式 -->
+		<aop:pointcut expression="execution(* com.atguigu.bos.service..*(..))" id="txPoint"/>
+		<!-- 配置事务增强 -->
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="txPoint"/>
+	</aop:config>
+	
+	<!--配置事务增强，事务如何切入  -->
+	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+		<tx:attributes>
+			<!-- 所有方法都是事务方法 -->
+			<tx:method name="*"/>
+			<!--以get开始的所有方法  -->
+			<tx:method name="get*" read-only="true"/>
+		</tx:attributes>
+	</tx:advice>
+	
+	<!-- Spring配置文件的核心点（数据源、与mybatis的整合，事务控制） -->
+    
+    <!-- 配置远程服务的代理对象 -->
+    <bean id="customerService" class="org.springframework.remoting.caucho.HessianProxyFactoryBean">
+        <!-- 注入接口类型 -->
+        <property name="serviceInterface" value="cn.itcast.crm.service.CustomerService"/>
+        <!-- 服务访问路径 -->
+        <property name="serviceUrl" value="http://localhost:8080/crm/remoting/customer"/>
+    </bean>
+	
+    <!-- 配置一个工厂bean，用于创建shiro框架用到过滤器 -->
+    <bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+        <!-- 注入安全管理器 -->
+        <property name="securityManager" ref="securityManager"></property>
+        <!-- 注入当前系统的登录页面 -->
+        <property name="loginUrl" value="/login.jsp"/>
+        <!-- 注入成功页面 -->
+        <property name="successUrl" value="/index.jsp"/>
+        <!-- 注入权限不足提示页面 -->
+        <property name="unauthorizedUrl" value="/unauthorizedUrl.jsp"/>
+        <!-- 注入URL拦截规则 -->
+        <property name="filterChainDefinitions">
+            <value>
+               /css/** = anon
+				/images/** = anon
+				/js/** = anon
+				/login.jsp* = anon
+				/validatecode.jsp* = anon
+				/userLogin = anon
+				/staffPath = perms["staff"]
+				/* = authc
+            </value>
+        </property>
+    </bean>
+        
+    <!-- 注册自定义realm -->
+    <bean id="bosRealm" class="com.itheima.bos.shiro.BOSRealm"></bean>
+    
+    <bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+        <!-- 注入上面的realm -->
+        <property name="realm" ref="bosRealm"/>
+        <!-- 注入缓存管理器 -->
+        <property name="cacheManager" ref="cacheManager"/>
+        <!-- 注入缓存管理器 -->
+    </bean>
+    
+    <!-- 注册缓存管理器 -->
+    <bean id="cacheManager" class="org.apache.shiro.cache.ehcache.EhCacheManager">
+        <!-- 注入ehcache配置文件 -->
+        <property name="cacheManagerConfigFile" value="classpath:ehcache.xml"/>
+    </bean>
+    
+    <!-- 切面类 -->
+    <bean class="org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor"/>
+    
+    <bean id="processEngineConfiguration" class="org.activiti.spring.SpringProcessEngineConfiguration">
+        <!-- 注入数据源 -->
+        <property name="dataSource" ref="pooledDataSource"/>
+        <!-- 注入事务管理器对象 -->
+        <property name="transactionManager" ref="transactionManager"/>
+        <property name="databaseSchemaUpdate" value="true" />
+    </bean>
+
+    <!-- 使用工厂创建流程引擎对象 -->
+    <bean id="processEngine" class="org.activiti.spring.ProcessEngineFactoryBean">
+        <property name="processEngineConfiguration" ref="processEngineConfiguration" />
+    </bean>
+    
+    <!-- 注册Service -->
+    <bean id="repositoryService" factory-bean="processEngine" factory-method="getRepositoryService">
+    </bean>
+    <bean id="runtimeService" factory-bean="processEngine" factory-method="getRuntimeService">
+    </bean>
+    <bean id="taskService" factory-bean="processEngine" factory-method="getTaskService">
+    </bean>
+    <bean id="identityService" factory-bean="processEngine" factory-method="getIdentityService">
+    </bean>
+     <bean id="historyService" factory-bean="processEngine" factory-method="getHistoryService">
+    </bean>
+    
+    <!-- 引入注解解析器 -->  <!-- 为增加hibernate配置而加-->
+    <context:annotation-config/>
+    <!-- 事务注解 -->  <!-- 为增加hibernate配置而加-->
+    <tx:annotation-driven />
+</beans>

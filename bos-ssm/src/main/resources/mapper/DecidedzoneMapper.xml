@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.atguigu.bos.dao.DecidedzoneMapper">
+  <resultMap id="BaseResultMap" type="com.atguigu.bos.bean.Decidedzone">
+    <id column="id" jdbcType="VARCHAR" property="id" />
+    <result column="name" jdbcType="VARCHAR" property="name" />
+    <result column="staff_id" jdbcType="VARCHAR" property="staffId" />
+  </resultMap>
+  <!-- 带有员工信息 -->
+    <resultMap id="StaffResultMap" type="com.atguigu.bos.bean.Decidedzone">
+    <id column="id" jdbcType="VARCHAR" property="id" />
+    <result column="name" jdbcType="VARCHAR" property="name" />
+    <!-- <result column="staff_id" jdbcType="VARCHAR" property="staffId" /> -->
+    <association property="staff" javaType="com.atguigu.bos.bean.Staff">
+        <id column="id" property="id"/>    
+        <result column="name" property="name"/>
+        <result column="telephone" property="telephone"/>
+        <result column="station" property="station"/>
+         <result column="standard" property="standard"/>
+    </association>
+  </resultMap>
+  
+  <sql id="Example_Where_Clause">
+    <where>
+      <foreach collection="oredCriteria" item="criteria" separator="or">
+        <if test="criteria.valid">
+          <trim prefix="(" prefixOverrides="and" suffix=")">
+            <foreach collection="criteria.criteria" item="criterion">
+              <choose>
+                <when test="criterion.noValue">
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue">
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue">
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue">
+                  and ${criterion.condition}
+                  <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Update_By_Example_Where_Clause">
+    <where>
+      <foreach collection="example.oredCriteria" item="criteria" separator="or">
+        <if test="criteria.valid">
+          <trim prefix="(" prefixOverrides="and" suffix=")">
+            <foreach collection="criteria.criteria" item="criterion">
+              <choose>
+                <when test="criterion.noValue">
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue">
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue">
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue">
+                  and ${criterion.condition}
+                  <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Base_Column_List">
+    id, name, staff_id
+  </sql>
+  
+  <sql id="Staff_Column_List">
+    d.id, d.name, d.staff_id,s.`name`,s.telephone,s.standard,s.station
+
+  </sql>
+  
+  <!-- //查询时，带有员工信息
+    List<Decidedzone> selectByExampleWithStaff(DecidedzoneExample example);
+   -->
+   
+   <select id="selectByExampleWithStaff" parameterType="com.atguigu.bos.bean.DecidedzoneExample" resultMap="StaffResultMap">
+    select
+    <if test="distinct">
+      distinct
+    </if>
+    <include refid="Staff_Column_List" />
+    from bc_decidedzone d LEFT JOIN bc_staff s on d.staff_id=s.id
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+    <if test="orderByClause != null">
+      order by ${orderByClause}
+    </if>
+  </select>
+  
+  <select id="selectByExample" parameterType="com.atguigu.bos.bean.DecidedzoneExample" resultMap="BaseResultMap">
+    select
+    <if test="distinct">
+      distinct
+    </if>
+    <include refid="Base_Column_List" />
+    from bc_decidedzone
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+    <if test="orderByClause != null">
+      order by ${orderByClause}
+    </if>
+  </select>
+  <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from bc_decidedzone
+    where id = #{id,jdbcType=VARCHAR}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+    delete from bc_decidedzone
+    where id = #{id,jdbcType=VARCHAR}
+  </delete>
+  <delete id="deleteByExample" parameterType="com.atguigu.bos.bean.DecidedzoneExample">
+    delete from bc_decidedzone
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+  </delete>
+  <insert id="insert" parameterType="com.atguigu.bos.bean.Decidedzone">
+    insert into bc_decidedzone (id, name, staff_id
+      )
+    values (#{id,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{staffId,jdbcType=VARCHAR}
+      )
+  </insert>
+  <!-- //插入时，插入员工id
+    int insertWithStaffId(@Param("id") String id,@Param("name") String name,@Param("staffId") String staffId); -->
+  
+   <insert id="insertWithStaffId" parameterType="com.atguigu.bos.bean.Decidedzone">
+    insert into bc_decidedzone (id, name, staff_id
+      )
+    values (#{id}, #{name}, #{staffId}
+      )
+  </insert>
+  
+  <!-- int insertSelectiveWithStaffId(Decidedzone record); -->
+    <insert id="insertSelectiveWithStaffId" parameterType="com.atguigu.bos.bean.Decidedzone">
+    insert into bc_decidedzone
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="name != null">
+        name,
+      </if>
+      <if test="staff != null">
+        staff_id,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=VARCHAR},
+      </if>
+      <if test="name != null">
+        #{name,jdbcType=VARCHAR},
+      </if>
+      
+    </trim>
+  </insert>
+  
+  
+  <insert id="insertSelective" parameterType="com.atguigu.bos.bean.Decidedzone">
+    insert into bc_decidedzone
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="name != null">
+        name,
+      </if>
+      <if test="staff.id != null">
+        staff_id,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=VARCHAR},
+      </if>
+      <if test="name != null">
+        #{name,jdbcType=VARCHAR},
+      </if>
+      <if test="staff.id != null">
+        #{staff.id,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <select id="countByExample" parameterType="com.atguigu.bos.bean.DecidedzoneExample" resultType="java.lang.Long">
+    select count(*) from bc_decidedzone
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+  </select>
+  <update id="updateByExampleSelective" parameterType="map">
+    update bc_decidedzone
+    <set>
+      <if test="record.id != null">
+        id = #{record.id,jdbcType=VARCHAR},
+      </if>
+      <if test="record.name != null">
+        name = #{record.name,jdbcType=VARCHAR},
+      </if>
+      <if test="record.staffId != null">
+        staff_id = #{record.staffId,jdbcType=VARCHAR},
+      </if>
+    </set>
+    <if test="_parameter != null">
+      <include refid="Update_By_Example_Where_Clause" />
+    </if>
+  </update>
+  <update id="updateByExample" parameterType="map">
+    update bc_decidedzone
+    set id = #{record.id,jdbcType=VARCHAR},
+      name = #{record.name,jdbcType=VARCHAR},
+      staff_id = #{record.staffId,jdbcType=VARCHAR}
+    <if test="_parameter != null">
+      <include refid="Update_By_Example_Where_Clause" />
+    </if>
+  </update>
+  <update id="updateByPrimaryKeySelective" parameterType="com.atguigu.bos.bean.Decidedzone">
+    update bc_decidedzone
+    <set>
+      <if test="name != null">
+        name = #{name,jdbcType=VARCHAR},
+      </if>
+      <if test="staffId != null">
+        staff_id = #{staffId,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+
+  
+  <update id="updateByPrimaryKey" parameterType="com.atguigu.bos.bean.Decidedzone">
+    update bc_decidedzone
+    set name = #{name,jdbcType=VARCHAR},
+      staff_id = #{staffId,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+</mapper>
